@@ -7,14 +7,24 @@ Emit clean XML with hiccup-style keyword s-expressions.
 ## Usage
 
 ```clojure
-(require [je.suis.lbx :refer [emit str->cdata]])
+je.suis/lbx {:mvn/version "0.2.0-SNAPSHOT"}
+```
+
+```clojure
+(require [je.suis.lbx :refer [emit CDATA]])
 
 (emit
   [:rss {:version "2.0" :xmlns:atom "http://www.w3.org/2005/Atom"}
    [:channel
     [:title "My totally sick RSS feed"]
-    [:description (str->cdata "Only the illest <items> from this feed, yo. And no mess regarding this <![CDATA[CDATA thing lol]]]>")]]])
-;; => <?xml version='1.0' encoding='UTF-8'?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>My totally sick RSS feed</title><description><![CDATA[Only the illest <items> from this feed, yo. And no mess regarding this <![CDATA[CDATA thing lol]]]]]><![CDATA[>]]></description></channel></rss>
+    [:description [CDATA "Only the illest <items> from this feed, yo. & also no mess regarding this <![CDATA[CDATA thing lol]]]>"]]]])
+; <?xml version="1.0" encoding="UTF-8"?>
+; <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+;   <channel>
+;     <title>My totally sick RSS feed</title>
+;     <description><![CDATA[Only the illest <items> from this feed, yo. & alse no mess regarding this <![CDATA[CDATA thing lol]]]]]><![CDATA[>]]></description>
+;   </channel>
+; </rss>
 ```
 
 ## License
