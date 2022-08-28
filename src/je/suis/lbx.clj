@@ -7,6 +7,9 @@
 (defn- str->cdata [s]
   (str "<![CDATA[" (str/replace s "]]>" "]]]]><![CDATA[>") "]]>"))
 
+(defn- str->comment [s]
+  (str "<!--" (str/replace s "-->" "--\\>") "-->"))
+
 (defn- escape-content [s]
   (->
    (str s)
@@ -25,29 +28,44 @@
    (str/replace  #"[\u0000-\u001F]" "\uFFFD")))
 
 (def CDATA CDATA)
+(def COMMENT COMMENT)
 (def noescape noescape)
 
-(defn emit-element [[tag & content-maybe]]
+(defn write-element [w [tag & content-maybe]]
   (cond
-    (= tag CDATA) (str->cdata (first content-maybe))
-    (= tag noescape) (first content-maybe)
+    (= tag CDATA) (.write w (str->cdata (first content-maybe)))
+    (= tag COMMENT) (.write w (str->comment (first content-maybe)))
+    (= tag noescape) (.write w (str (first content-maybe)))
     true
     (let [attrs (when (map? (first content-maybe)) (first content-maybe))
           content (if (some? attrs)
                     (rest content-maybe)
                     content-maybe)]
-      (str
-       \< (name tag)
-       (reduce #(str %1 \space (name (key %2)) \= \" (escape-attr (val %2)) \") "" attrs)
-       (if (empty? content)
-         "/>"
-         (str
-          \>
-          (reduce
-           #(cond
-              (string? %2) (str %1 (escape-content %2))
-              (seqable? %2) (str %1 (emit-element %2))
-              true (str %1 (escape-content (str %2)))) "" content)
-          \< \/ (name tag) \>))))))
+      (.write w (str \< (name tag)))
+      (doseq [[k v] attrs]
+        (.write w (str \space (name k) \= \" (escape-attr v) \")))
+      (if (empty? content)
+        (.write w "/>")
+        (do
+          (.write w (str \>))
+          (doseq [ce content]
+            (cond
+              (string? ce) (.write w (escape-content ce))
+              (seqable? ce) (write-element w ce)
+              true (.write w (escape-content (str ce)))))
+          (.write w (str \< \/ (name tag) \>)))))))
 
-(defn emit [root] (str "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" (emit-element root)))
+(defn write-document [w root]
+  (.write w "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+  (write-element w root))
+
+;; write-element StringWriter is always faster than recursive string appends
+(defn emit-element [e]
+  (let [s (java.io.StringWriter.)]
+    (write-element s e)
+    (str s)))
+
+(defn emit [root]
+  (let [s (java.io.StringWriter.)]
+    (write-document s root)
+    (str s)))

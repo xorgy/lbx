@@ -7,7 +7,7 @@ Emit clean XML with hiccup-style keyword s-expressions.
 ## Usage
 
 ```clojure
-je.suis/lbx {:mvn/version "0.2.0-SNAPSHOT"}
+je.suis/lbx {:mvn/version "0.3.0-SNAPSHOT"}
 ```
 
 ```clojure
